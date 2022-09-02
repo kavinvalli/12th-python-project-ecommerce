@@ -1,4 +1,5 @@
 import pymysql as pm
+import pickle
 
 db = pm.connect(host='127.0.0.1', user='root', database="ecommerce")
 c = db.cursor()
@@ -40,6 +41,15 @@ if c.rowcount == 0:
 db.commit()
 ###################### SEED USERS INTO DATABASE OVER #####################
 
+############################## CREATE user.dat ###########################
+file = open("user.dat", "rb+")
+try:
+    content = pickle.load(file)
+except EOFError:
+    pickle.dump((), file)
+file.close()
+########################### CREATE user.dat OVER #########################
+
 #########################################################################
 ######################### DATABASE PREPERATION OVER #####################
 #########################################################################
@@ -54,7 +64,8 @@ USER_INPUT = """1. Show All Products
 6. Clear Cart
 7. Place Order
 8. View Orders
-9. Quit
+9. Logout
+10. Quit
 What do you want to do? """
 ADMIN_INPUT = """1. Show All Products
 2. Search Products
@@ -63,7 +74,8 @@ ADMIN_INPUT = """1. Show All Products
 5. Change Inventory of a Product
 6. View all orders
 7. Update order status
-8. Quit
+8. Logout
+9. Quit
 What do you want to do? """
 NOT_LOGGED_IN_INPUT = """1. Login
 2. Register
@@ -82,6 +94,20 @@ What do you want to do? """
 #########################################################################
 ############################ UTILITY FUNCTIONS ##########################
 #########################################################################
+
+
+def store_user(user):
+    """
+    Stores user in user.txt
+
+    Args:
+    ---
+        user : tuple
+            the user object to be stored
+    """
+    file = open("user.dat", "wb")
+    pickle.dump(user, file)
+    file.close()
 
 
 def list_products(products):
@@ -274,6 +300,7 @@ def login():
         else:
             user = c.fetchone()
             if user and user[4] == password:
+                store_user(user)
                 global logged_in, logged_in_user
                 logged_in = True
                 logged_in_user = user
@@ -318,8 +345,15 @@ def register():
         user = c.fetchone()
         print(user)
         global logged_in, logged_in_user
+        store_user(user)
         logged_in = True
         logged_in_user = user
+
+
+def logout():
+    file = open("user.dat", "wb")
+    pickle.dump((), file)
+    file.close()
 
 
 def show_all_products():
@@ -547,6 +581,12 @@ def update_order_status():
 
 
 while True:
+    file = open("user.dat", "rb")
+    user = pickle.load(file)
+    if user:
+        logged_in = True
+        logged_in_user = user
+    file.close()
     if not logged_in:
         choice = input(NOT_LOGGED_IN_INPUT)
         if choice == "1":
@@ -573,6 +613,9 @@ while True:
             elif choice == "7":
                 update_order_status()
             elif choice == "8":
+                logout()
+                break
+            elif choice == "9":
                 break
         else:  # normal user
             choice = input(USER_INPUT)
@@ -597,5 +640,8 @@ while True:
             elif choice == "8":
                 view_orders()
             elif choice == "9":
+                logout()
+                break
+            elif choice == "10":
                 break
 db.close()
