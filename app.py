@@ -573,6 +573,7 @@ def update_order_status():
         int(input(ORDER_STATUS_INPUT)) - 1]
     print(status)
     c.execute("UPDATE orders SET status=%s WHERE id=%s", (status, order_id))
+    db.commit()
 
 
 #########################################################################
